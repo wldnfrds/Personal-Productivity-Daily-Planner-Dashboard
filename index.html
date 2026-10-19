@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Produktivitas Harian</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: radial-gradient(circle at top left, #0f172a, #020617);
+    }
+    
+    /* Glassmorphism Card Style */
+    .glass-card {
+      background: rgba(30, 41, 59, 0.55);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    
+    .glass-input {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .glass-input:focus {
+      border-color: #6366f1;
+      outline: none;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.5);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(99, 102, 241, 0.3);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(99, 102, 241, 0.6);
+    }
+
+    /* Animation */
+    @keyframes pulse-subtle {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.85; }
+    }
+    .timer-active {
+      animation: pulse-subtle 2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen p-4 md:p-8 flex flex-col justify-between">
+
+  <!-- Main Container -->
+  <div class="max-w-7xl mx-auto w-full space-y-6">
+
+    <!-- HEADER / JAM DIGITAL & UCAPAN -->
+    <header class="glass-card rounded-2xl p-6 md:p-8 shadow-2xl relative overflow-hidden">
+      <!-- Glow Accent Background Decorative -->
+      <div class="absolute -top-10 -right-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="flex flex-col md:flex-row justify-between items-center gap-6 relative z-10">
+        <!-- Greetings & Name -->
+        <div class="text-center md:text-left">
+          <div class="flex items-center justify-center md:justify-start gap-2 text-indigo-400 font-medium text-sm md:text-base mb-1">
+            <span id="greetingText">Selamat Hari Ini</span>
+          </div>
+          <h1 class="text-2xl md:text-4xl font-bold tracking-tight text-white flex items-center justify-center md:justify-start gap-2">
+            <span id="userNameDisplay" class="border-b-2 border-dashed border-indigo-500/50 hover:border-indigo-400 cursor-pointer transition" title="Klik untuk mengubah nama">Pengguna</span>
+            <button onclick="editUserName()" class="text-xs bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 p-1.5 rounded-lg transition" title="Ubah Nama">
+              ✏️
+            </button>
+          </h1>
+          <p id="fullDateDisplay" class="text-slate-400 text-xs md:text-sm mt-1">Memuat tanggal...</p>
+        </div>
+
+        <!-- Clock Display -->
+        <div class="glass-card px-6 py-3 rounded-2xl border border-indigo-500/20 text-center shadow-inner">
+          <div id="clockDisplay" class="text-3xl md:text-5xl font-extrabold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-400 font-mono">
+            00:00:00
+          </div>
+          <div class="text-[10px] uppercase tracking-wider text-slate-400 mt-1 font-semibold">Waktu Lokal</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- GRID CONTENT UTAMA -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- KOLOM KIRI: TO-DO LIST (2 SPAN PADA LARGE SCREEN) -->
+      <section class="lg:col-span-2 glass-card rounded-2xl p-6 shadow-xl flex flex-col justify-between">
+        <div>
+          <!-- Header To-Do -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div class="flex items-center gap-2">
+              <span class="text-2xl">📋</span>
+              <h2 class="text-xl font-bold text-white">Daftar Tugas Harian</h2>
+            </div>
+            
+            <!-- Filters -->
+            <div class="flex bg-slate-800/80 p-1 rounded-xl text-xs gap-1 self-start sm:self-auto border border-slate-700/50">
+              <button onclick="filterTasks('all')" id="filter-all" class="px-3 py-1.5 rounded-lg font-medium transition bg-indigo-600 text-white">Semua</button>
+              <button onclick="filterTasks('active')" id="filter-active" class="px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition">Aktif</button>
+              <button onclick="filterTasks('completed')" id="filter-completed" class="px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition">Selesai</button>
+            </div>
+          </div>
+
+          <!-- Input Task -->
+          <form id="todoForm" onsubmit="addTask(event)" class="flex gap-2 mb-6">
+            <input type="text" id="todoInput" placeholder="Tambah tugas baru..." required
+                   class="glass-input flex-1 px-4 py-3 rounded-xl text-sm text-slate-100 placeholder-slate-500 transition">
+            <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-5 py-3 rounded-xl text-sm transition flex items-center gap-1 shadow-lg shadow-indigo-600/30 active:scale-95">
+              <span>+</span> <span class="hidden sm:inline">Tambah</span>
+            </button>
+          </form>
+
+          <!-- Task List -->
+          <ul id="todoList" class="space-y-2.5 max-h-[360px] overflow-y-auto pr-1">
+            <!-- Items injected by JS -->
+          </ul>
+        </div>
+
+        <!-- Task Stats Footnote -->
+        <div class="mt-6 pt-4 border-t border-slate-700/50 flex justify-between items-center text-xs text-slate-400">
+          <span id="taskStats">0 dari 0 tugas selesai</span>
+          <button onclick="clearCompletedTasks()" class="hover:text-rose-400 transition underline">Hapus Selesai</button>
+        </div>
+      </section>
+
+      <!-- KOLOM KANAN: POMODORO TIMER -->
+      <section class="glass-card rounded-2xl p-6 shadow-xl flex flex-col justify-between items-center text-center">
+        <div class="w-full">
+          <!-- Header Timer -->
+          <div class="flex items-center justify-center gap-2 mb-4">
+            <span class="text-2xl">⏳</span>
+            <h2 class="text-xl font-bold text-white">Focus Timer</h2>
+          </div>
+
+          <!-- Mode Selector -->
+          <div class="flex justify-center bg-slate-800/80 p-1 rounded-xl text-xs gap-1 mb-6 border border-slate-700/50 w-fit mx-auto">
+            <button onclick="setTimerMode('focus')" id="mode-focus" class="px-4 py-1.5 rounded-lg font-medium transition bg-indigo-600 text-white">Focus (25m)</button>
+            <button onclick="setTimerMode('break')" id="mode-break" class="px-4 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition">Istirahat (5m)</button>
+          </div>
+
+          <!-- Timer Visual Display -->
+          <div class="relative w-48 h-48 mx-auto mb-6 flex items-center justify-center">
+            <!-- Circular Progress Background -->
+            <svg class="w-full h-full transform -rotate-90">
+              <circle cx="96" cy="96" r="88" stroke="currentColor" stroke-width="8" class="text-slate-800" fill="transparent" />
+              <circle id="timerProgressCircle" cx="96" cy="96" r="88" stroke="currentColor" stroke-width="8" class="text-indigo-500 transition-all duration-1000" fill="transparent" stroke-dasharray="552.92" stroke-dashoffset="0" stroke-linecap="round" />
+            </svg>
+            <div class="absolute flex flex-col items-center">
+              <span id="timerDisplay" class="text-4xl font-black font-mono tracking-wider text-white">25:00</span>
+              <span id="timerStatus" class="text-xs font-semibold uppercase tracking-widest text-indigo-400 mt-1">Siap Fokus</span>
+            </div>
+          </div>
+
+          <!-- Timer Controls -->
+          <div class="flex justify-center items-center gap-3">
+            <button id="startPauseBtn" onclick="toggleTimer()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-6 py-2.5 rounded-xl text-sm transition shadow-lg shadow-indigo-600/30 min-w-[90px]">
+              Mulai
+            </button>
+            <button onclick="resetTimer()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium px-4 py-2.5 rounded-xl text-sm transition border border-slate-700">
+              Reset
+            </button>
+          </div>
+        </div>
+
+        <p class="text-[11px] text-slate-500 mt-6">Teknik Pomodoro membantu menjaga produktivitas secara berkala.</p>
+      </section>
+
+    </div>
+
+    <!-- BOTTOM ROW: QUICK LINKS & QUICK NOTES -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+      <!-- QUICK LINKS -->
+      <section class="glass-card rounded-2xl p-6 shadow-xl">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">🚀</span>
+            <h2 class="text-xl font-bold text-white">Quick Links</h2>
+          </div>
+          <button onclick="openAddShortcutModal()" class="text-xs bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 px-3 py-1.5 rounded-lg transition font-medium">
+            + Tambah
+          </button>
+        </div>
+
+        <!-- Shortcuts Grid -->
+        <div id="shortcutsContainer" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <!-- Shortcuts will be populated here -->
+        </div>
+      </section>
+
+      <!-- QUICK NOTES -->
+      <section class="glass-card rounded-2xl p-6 shadow-xl flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <span class="text-2xl">📝</span>
+              <h2 class="text-xl font-bold text-white">Catatan Cepat</h2>
+            </div>
+            <span id="saveNotice" class="text-[11px] text-emerald-400 opacity-0 transition-opacity duration-300 font-medium">Tersimpan ✓</span>
+          </div>
+
+          <textarea id="quickNotes" oninput="saveNotes()" placeholder="Tulis catatan sementara, ide, atau buram di sini..."
+                    class="glass-input w-full h-32 p-3.5 rounded-xl text-sm text-slate-200 placeholder-slate-500 resize-none transition mb-3"></textarea>
+        </div>
+
+        <div class="flex justify-end gap-2">
+          <button onclick="clearNotes()" class="bg-slate-800 hover:bg-rose-950/40 hover:text-rose-400 text-slate-400 px-3.5 py-1.5 rounded-lg text-xs font-medium transition border border-slate-700/50">
+            Hapus
+          </button>
+          <button onclick="copyNotes()" class="bg-indigo-600/80 hover:bg-indigo-600 text-white px-3.5 py-1.5 rounded-lg text-xs font-medium transition shadow-md">
+            Salin Catatan
+          </button>
+        </div>
+      </section>
+
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="mt-8 text-center text-xs text-slate-500">
+    <p>Dashboard Produktivitas Harian &bull; -wldnfrds</p>
+  </footer>
+
+  <!-- MODAL DIALOG UNTUK CUSTOM NOTIFICATION/ALERT & SHORTCUT INPUT -->
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-5 right-5 bg-indigo-600 text-white px-5 py-3 rounded-xl shadow-2xl transition-all duration-300 transform translate-y-20 opacity-0 z-50 text-sm font-medium flex items-center gap-2">
+    <span id="toastIcon">🔔</span>
+    <span id="toastMessage">Notifikasi</span>
+  </div>
+
+  <!-- Shortcut Add Modal -->
+  <div id="shortcutModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+    <div class="glass-card bg-slate-900 border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+      <h3 class="text-lg font-bold text-white mb-4">Tambah Shortcut Baru</h3>
+      <form onsubmit="saveNewShortcut(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Nama Situs</label>
+          <input type="text" id="shortcutName" placeholder="Contoh: GitHub" required class="glass-input w-full px-3.5 py-2 rounded-xl text-sm text-white">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">URL Web</label>
+          <input type="url" id="shortcutUrl" placeholder="https://github.com" required class="glass-input w-full px-3.5 py-2 rounded-xl text-sm text-white">
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeAddShortcutModal()" class="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:bg-slate-800 transition">Batal</button>
+          <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-medium transition">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT UTAMA -->
+  <script>
+    /* ==========================================================================
+       1. STATE & STORAGE MANAGEMENT
+       ========================================================================== */
+    let userName = localStorage.getItem('planner_username') || 'Pengguna';
+    let todos = JSON.parse(localStorage.getItem('planner_todos')) || [
+      { id: 1, text: 'Menyelesaikan pekerjaan harian', completed: false },
+      { id: 2, text: 'Minum air putih 2 Liter', completed: true }
+    ];
+    let currentFilter = 'all';
+    
+    let shortcuts = JSON.parse(localStorage.getItem('planner_shortcuts')) || [
+      { id: 1, name: 'Google', url: 'https://google.com', icon: '🔍' },
+      { id: 2, name: 'Gmail', url: 'https://mail.google.com', icon: '✉️' },
+      { id: 3, name: 'YouTube', url: 'https://youtube.com', icon: '▶️' },
+      { id: 4, name: 'GitHub', url: 'https://github.com', icon: '💻' }
+    ];
+
+    /* ==========================================================================
+       2. REAL-TIME CLOCK & HEADER salam
+       ========================================================================== */
+    function updateClockAndGreeting() {
+      const now = new Date();
+      
+      // Update Jam Digital
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      document.getElementById('clockDisplay').textContent = `${hours}:${minutes}:${seconds}`;
+
+      // Update Salam Berdasarkan Jam
+      const hourNum = now.getHours();
+      let greeting = '';
+      if (hourNum >= 4 && hourNum < 11) {
+        greeting = '🌅 Selamat Pagi,';
+      } else if (hourNum >= 11 && hourNum < 15) {
+        greeting = '☀️ Selamat Siang,';
+      } else if (hourNum >= 15 && hourNum < 18) {
+        greeting = '🌇 Selamat Sore,';
+      } else {
+        greeting = '🌙 Selamat Malam,';
+      }
+      document.getElementById('greetingText').textContent = greeting;
+
+      // Format Tanggal Indonesia
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      document.getElementById('fullDateDisplay').textContent = now.toLocaleDateString('id-ID', options);
+    }
+
+    function initUser() {
+      document.getElementById('userNameDisplay').textContent = userName;
+    }
+
+    function editUserName() {
+      const newName = prompt('Masukkan nama Anda:', userName);
+      if (newName && newName.trim() !== '') {
+        userName = newName.trim();
+        localStorage.setItem('planner_username', userName);
+        document.getElementById('userNameDisplay').textContent = userName;
+        showToast('Nama berhasil diperbarui!', '👤');
+      }
+    }
+
+    /* ==========================================================================
+       3. TO-DO LIST MANAGEMENT
+       ========================================================================== */
+    function saveTodos() {
+      localStorage.setItem('planner_todos', JSON.stringify(todos));
+    }
+
+    function renderTodos() {
+      const todoList = document.getElementById('todoList');
+      todoList.innerHTML = '';
+
+      let filteredTodos = todos;
+      if (currentFilter === 'active') {
+        filteredTodos = todos.filter(t => !t.completed);
+      } else if (currentFilter === 'completed') {
+        filteredTodos = todos.filter(t => t.completed);
+      }
+
+      if (filteredTodos.length === 0) {
+        todoList.innerHTML = `<li class="text-center py-6 text-slate-500 text-xs italic">Tidak ada tugas ditemukan.</li>`;
+      } else {
+        filteredTodos.forEach(todo => {
+          const li = document.createElement('li');
+          li.className = `flex items-center justify-between p-3 rounded-xl glass-input transition group ${todo.completed ? 'opacity-60' : ''}`;
+          
+          li.innerHTML = `
+            <div class="flex items-center gap-3 overflow-hidden pr-2">
+              <input type="checkbox" ${todo.completed ? 'checked' : ''} onchange="toggleTodo(${todo.id})"
+                     class="w-4 h-4 rounded border-slate-600 text-indigo-600 focus:ring-indigo-500 bg-slate-800 cursor-pointer">
+              <span class="text-sm font-medium ${todo.completed ? 'line-through text-slate-400' : 'text-slate-200'} truncate">
+                ${escapeHTML(todo.text)}
+              </span>
+            </div>
+            <button onclick="deleteTodo(${todo.id})" class="text-slate-500 hover:text-rose-400 text-xs p-1 opacity-80 sm:opacity-0 group-hover:opacity-100 transition">
+              🗑️
+            </button>
+          `;
+          todoList.appendChild(li);
+        });
+      }
+
+      // Update Task Stats
+      const completedCount = todos.filter(t => t.completed).length;
+      document.getElementById('taskStats').textContent = `${completedCount} dari ${todos.length} tugas selesai`;
+    }
+
+    function addTask(e) {
+      e.preventDefault();
+      const input = document.getElementById('todoInput');
+      const text = input.value.trim();
+      
+      if (text) {
+        const newTodo = {
+          id: Date.now(),
+          text: text,
+          completed: false
+        };
+        todos.unshift(newTodo);
+        saveTodos();
+        renderTodos();
+        input.value = '';
+        showToast('Tugas baru ditambahkan!', '✅');
+      }
+    }
+
+    function toggleTodo(id) {
+      todos = todos.map(todo => {
+        if (todo.id === id) {
+          return { ...todo, completed: !todo.completed };
+        }
+        return todo;
+      });
+      saveTodos();
+      renderTodos();
+    }
+
+    function deleteTodo(id) {
+      todos = todos.filter(todo => todo.id !== id);
+      saveTodos();
+      renderTodos();
+      showToast('Tugas telah dihapus', '🗑️');
+    }
+
+    function clearCompletedTasks() {
+      const prevCount = todos.length;
+      todos = todos.filter(t => !t.completed);
+      if (todos.length < prevCount) {
+        saveTodos();
+        renderTodos();
+        showToast('Tugas selesai telah dibersihkan', '🧹');
+      }
+    }
+
+    function filterTasks(filter) {
+      currentFilter = filter;
+      ['all', 'active', 'completed'].forEach(f => {
+        const btn = document.getElementById(`filter-${f}`);
+        if (f === filter) {
+          btn.className = "px-3 py-1.5 rounded-lg font-medium transition bg-indigo-600 text-white";
+        } else {
+          btn.className = "px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition";
+        }
+      });
+      renderTodos();
+    }
+
+    /* ==========================================================================
+       4. POMODORO FOCUS TIMER
+       ========================================================================== */
+    let timerInterval = null;
+    let timerTimeLeft = 25 * 60;
+    let timerTotalTime = 25 * 60;
+    let isTimerRunning = false;
+    let currentMode = 'focus'; // 'focus' | 'break'
+
+    function setTimerMode(mode) {
+      if (isTimerRunning) pauseTimer();
+      currentMode = mode;
+      
+      const focusBtn = document.getElementById('mode-focus');
+      const breakBtn = document.getElementById('mode-break');
+      const statusDisplay = document.getElementById('timerStatus');
+
+      if (mode === 'focus') {
+        timerTotalTime = 25 * 60;
+        focusBtn.className = "px-4 py-1.5 rounded-lg font-medium transition bg-indigo-600 text-white";
+        breakBtn.className = "px-4 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition";
+        statusDisplay.textContent = "Siap Fokus";
+      } else {
+        timerTotalTime = 5 * 60;
+        breakBtn.className = "px-4 py-1.5 rounded-lg font-medium transition bg-indigo-600 text-white";
+        focusBtn.className = "px-4 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition";
+        statusDisplay.textContent = "Waktu Istirahat";
+      }
+
+      timerTimeLeft = timerTotalTime;
+      updateTimerDisplay();
+    }
+
+    function updateTimerDisplay() {
+      const minutes = Math.floor(timerTimeLeft / 60);
+      const seconds = timerTimeLeft % 60;
+      document.getElementById('timerDisplay').textContent = 
+        `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+      // Update Circular SVG Progress
+      const circle = document.getElementById('timerProgressCircle');
+      const circumference = 2 * Math.PI * 88; // r=88
+      const offset = circumference - (timerTimeLeft / timerTotalTime) * circumference;
+      circle.style.strokeDasharray = `${circumference}`;
+      circle.style.strokeDashoffset = `${offset}`;
+    }
+
+    function toggleTimer() {
+      if (isTimerRunning) {
+        pauseTimer();
+      } else {
+        startTimer();
+      }
+    }
+
+    function startTimer() {
+      isTimerRunning = true;
+      document.getElementById('startPauseBtn').textContent = 'Jeda';
+      document.getElementById('startPauseBtn').className = "bg-amber-600 hover:bg-amber-500 text-white font-medium px-6 py-2.5 rounded-xl text-sm transition shadow-lg shadow-amber-600/30 min-w-[90px]";
+      document.getElementById('timerStatus').textContent = currentMode === 'focus' ? 'Fokus Berlangsung' : 'Istirahat Berlangsung';
+
+      timerInterval = setInterval(() => {
+        if (timerTimeLeft > 0) {
+          timerTimeLeft--;
+          updateTimerDisplay();
+        } else {
+          clearInterval(timerInterval);
+          isTimerRunning = false;
+          playBeepSound();
+          showToast(currentMode === 'focus' ? 'Waktu Fokus Selesai! Istirahat sejenak.' : 'Istirahat Selesai! Siap fokus kembali.', '🔔');
+          resetTimer();
+        }
+      }, 1000);
+    }
+
+    function pauseTimer() {
+      clearInterval(timerInterval);
+      isTimerRunning = false;
+      document.getElementById('startPauseBtn').textContent = 'Mulai';
+      document.getElementById('startPauseBtn').className = "bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-6 py-2.5 rounded-xl text-sm transition shadow-lg shadow-indigo-600/30 min-w-[90px]";
+      document.getElementById('timerStatus').textContent = 'Dijeda';
+    }
+
+    function resetTimer() {
+      pauseTimer();
+      timerTimeLeft = timerTotalTime;
+      updateTimerDisplay();
+      document.getElementById('timerStatus').textContent = currentMode === 'focus' ? 'Siap Fokus' : 'Waktu Istirahat';
+    }
+
+    // Sound Beep Generator (Web Audio API)
+    function playBeepSound() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5 Note
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.8);
+      } catch (e) {
+        console.log("Audio not allowed without user gesture");
+      }
+    }
+
+    /* ==========================================================================
+       5. QUICK LINKS / SHORTCUTS
+       ========================================================================== */
+    function saveShortcuts() {
+      localStorage.setItem('planner_shortcuts', JSON.stringify(shortcuts));
+    }
+
+    function renderShortcuts() {
+      const container = document.getElementById('shortcutsContainer');
+      container.innerHTML = '';
+
+      shortcuts.forEach(shortcut => {
+        const item = document.createElement('div');
+        item.className = 'relative group';
+
+        item.innerHTML = `
+          <a href="${shortcut.url}" target="_blank" rel="noopener noreferrer" 
+             class="flex flex-col items-center justify-center p-3 rounded-xl glass-input hover:bg-slate-800/80 hover:border-indigo-500/50 transition text-center h-20 group">
+            <span class="text-xl mb-1">${shortcut.icon || '🌐'}</span>
+            <span class="text-xs font-medium text-slate-300 truncate w-full">${escapeHTML(shortcut.name)}</span>
+          </a>
+          <button onclick="deleteShortcut(${shortcut.id})" title="Hapus shortcut"
+                  class="absolute -top-1.5 -right-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition shadow-md">
+            ✕
+          </button>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function openAddShortcutModal() {
+      document.getElementById('shortcutModal').classList.remove('hidden');
+    }
+
+    function closeAddShortcutModal() {
+      document.getElementById('shortcutModal').classList.add('hidden');
+      document.getElementById('shortcutName').value = '';
+      document.getElementById('shortcutUrl').value = '';
+    }
+
+    function saveNewShortcut(e) {
+      e.preventDefault();
+      const name = document.getElementById('shortcutName').value.trim();
+      let url = document.getElementById('shortcutUrl').value.trim();
+
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://' + url;
+      }
+
+      if (name && url) {
+        shortcuts.push({
+          id: Date.now(),
+          name: name,
+          url: url,
+          icon: '🔗'
+        });
+        saveShortcuts();
+        renderShortcuts();
+        closeAddShortcutModal();
+        showToast('Shortcut baru ditambahkan!', '🔗');
+      }
+    }
+
+    function deleteShortcut(id) {
+      shortcuts = shortcuts.filter(s => s.id !== id);
+      saveShortcuts();
+      renderShortcuts();
+      showToast('Shortcut dihapus', '🗑️');
+    }
+
+    /* ==========================================================================
+       6. QUICK NOTES
+       ========================================================================== */
+    let saveNoteTimeout = null;
+
+    function initNotes() {
+      const savedNotes = localStorage.getItem('planner_notes') || '';
+      document.getElementById('quickNotes').value = savedNotes;
+    }
+
+    function saveNotes() {
+      const notes = document.getElementById('quickNotes').value;
+      localStorage.setItem('planner_notes', notes);
+
+      const notice = document.getElementById('saveNotice');
+      notice.classList.remove('opacity-0');
+
+      clearTimeout(saveNoteTimeout);
+      saveNoteTimeout = setTimeout(() => {
+        notice.classList.add('opacity-0');
+      }, 1500);
+    }
+
+    function clearNotes() {
+      if (confirm('Apakah Anda yakin ingin menghapus catatan cepat ini?')) {
+        document.getElementById('quickNotes').value = '';
+        saveNotes();
+        showToast('Catatan dibersihkan', '🗑️');
+      }
+    }
+
+    function copyNotes() {
+      const notesArea = document.getElementById('quickNotes');
+      if (!notesArea.value.trim()) {
+        showToast('Catatan masih kosong!', '⚠️');
+        return;
+      }
+      
+      notesArea.select();
+      document.execCommand('copy');
+      window.getSelection().removeAllRanges();
+      
+      showToast('Catatan berhasil disalin ke clipboard!', '📋');
+    }
+
+    /* ==========================================================================
+       7. UTILS & HELPERS
+       ========================================================================== */
+    function showToast(message, icon = 'ℹ️') {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMessage').textContent = message;
+      document.getElementById('toastIcon').textContent = icon;
+
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3000);
+    }
+
+    function escapeHTML(str) {
+      return str.replace(/[&<>'"]/g, 
+        tag => ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          "'": '&#39;',
+          '"': '&quot;'
+        }[tag] || tag)
+      );
+    }
+
+    /* ==========================================================================
+       INITIALIZATION ON LOAD
+       ========================================================================== */
+    window.onload = function() {
+      initUser();
+      updateClockAndGreeting();
+      setInterval(updateClockAndGreeting, 1000);
+      
+      renderTodos();
+      renderShortcuts();
+      initNotes();
+      updateTimerDisplay();
+    };
+  </script>
+</body>
+</html>
+```
